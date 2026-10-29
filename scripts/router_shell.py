@@ -28,7 +28,7 @@ LIB_DIR = os.path.join(BASE_DIR, "lib")
 if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
-from zte_unlock import attempt_unlock, get_secret
+from zte_unlock import attempt_unlock, resolve_credentials
 
 def main():
     parser = argparse.ArgumentParser(description="ZTE ZXHN F670L Interactive Root Shell")
@@ -38,34 +38,22 @@ def main():
     args = parser.parse_args()
 
     host = args.host
-    user = args.user
-    pw = args.password
+    candidates = resolve_credentials(args.user, args.password)
+    if not candidates:
+        user = input("Enter web username [admin]: ").strip() or "admin"
+        pw = input("Enter web password: ").strip()
+        candidates = [(user, pw)]
 
-    # Try resolving credentials from keyring or common defaults if not provided
-    if not user or not pw:
-        keyring_pass = get_secret("admin") or get_secret("broken")
-        if keyring_pass:
-            pw = keyring_pass
-            user = user or ("broken" if get_secret("broken") else "admin")
-
-    if not user or not pw:
-        # Prompt user interactively
-        print("[*] Router web credentials required for factory authentication.")
-        user = user or input("Enter web username [admin]: ").strip() or "admin"
-        pw = pw or input("Enter web password: ").strip()
-
-    if not pw:
-        print("[-] Error: Password is required.", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"[*] Authenticating with router at {host} as '{user}'...")
     ok, res = False, ""
-    for attempt in range(1, 4):
-        ok, res = attempt_unlock(user, pw, host=host)
+    for user, pw in candidates:
+        print(f"[*] Authenticating with router at {host} as '{user}'...")
+        for attempt in range(1, 3):
+            ok, res = attempt_unlock(user, pw, host=host)
+            if ok:
+                break
+            time.sleep(1)
         if ok:
             break
-        print(f"[*] Handshake attempt {attempt} failed, retrying...")
-        time.sleep(1.5)
 
     if not ok:
         print(f"[-] FATAL: Factory handshake failed: {res}", file=sys.stderr)

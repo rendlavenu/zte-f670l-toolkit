@@ -30,7 +30,7 @@ LIB_DIR = os.path.join(BASE_DIR, "lib")
 if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
-from zte_unlock import attempt_unlock, get_secret
+from zte_unlock import attempt_unlock, resolve_credentials
 
 def telnet_session(host, user, pw):
     """Establish Telnet connection using temporary session credentials."""
@@ -106,7 +106,7 @@ def extract_all(host, web_user, web_pass):
         time.sleep(1.5)
 
     if not ok:
-        raise RuntimeError(f"Factory mode handshake failed: {res}")
+        raise RuntimeError(f"Factory mode handshake failed for user '{web_user}': {res}")
 
     parsed = parse_qs(urlparse(res).query)
     t_user = parsed.get("user", [""])[0]
@@ -208,29 +208,28 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     args = parser.parse_args()
 
-    user = args.user
-    pw = args.password
-    if not user or not pw:
-        keyring_pass = get_secret("admin") or get_secret("broken")
-        if keyring_pass:
-            pw = keyring_pass
-            user = user or ("broken" if get_secret("broken") else "admin")
-
-    if not user or not pw:
-        user = user or input("Enter web username [admin]: ").strip() or "admin"
-        pw = pw or input("Enter web password: ").strip()
-
-    if not pw:
-        print("[-] Error: Password is required.", file=sys.stderr)
-        sys.exit(1)
+    candidates = resolve_credentials(args.user, args.password)
+    if not candidates:
+        user = input("Enter web username [admin]: ").strip() or "admin"
+        pw = input("Enter web password: ").strip()
+        candidates = [(user, pw)]
 
     if not args.json:
         print(f"[*] Extracting credentials from {args.host}...")
 
-    try:
-        data = extract_all(args.host, user, pw)
-    except Exception as e:
-        print(f"[-] Extraction failed: {e}", file=sys.stderr)
+    data = None
+    last_err = ""
+    for u, p in candidates:
+        try:
+            data = extract_all(args.host, u, p)
+            if data:
+                break
+        except Exception as e:
+            last_err = str(e)
+            time.sleep(1)
+
+    if not data:
+        print(f"[-] Extraction failed: {last_err}", file=sys.stderr)
         sys.exit(1)
 
     if args.json:

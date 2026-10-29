@@ -53,6 +53,38 @@ def get_secret(key="admin"):
             pass
     return None
 
+def resolve_credentials(user=None, password=None):
+    """Return a list of candidate (username, password) tuples to try."""
+    if user and password:
+        return [(user, password)]
+
+    candidates = []
+    # Check environment variables
+    env_user = os.environ.get("ROUTER_USER")
+    env_pass = os.environ.get("ROUTER_PASS")
+    if env_user and env_pass:
+        candidates.append((env_user, env_pass))
+
+    # Check secret-tool keyring
+    for u in ["broken", "admin"]:
+        try:
+            res = subprocess.check_output(
+                ["secret-tool", "lookup", "service", "router", "username", u],
+                text=True, stderr=subprocess.DEVNULL
+            )
+            if res.strip():
+                candidates.append((u, res.strip()))
+        except Exception:
+            pass
+
+    # Common factory defaults
+    candidates.extend([
+        ("admin", "admin"),
+        ("admin", "zte521"),
+        ("telecomadmin", "admintelecom"),
+    ])
+    return candidates
+
 def get_active_mac(target_ip="192.168.1.1"):
     """Dynamically determine the local MAC address routing to target_ip."""
     try:
