@@ -15,8 +15,8 @@ Bypasses the locked carrier environment by exploiting the hidden factory diagnos
 
 ### 1. Install Dependencies
 ```bash
-git clone https://github.com/rendlavenu/f670l-toolkit.git
-cd f670l-toolkit
+git clone https://github.com/rendlavenu/zte-f670l-toolkit.git
+cd zte-f670l-toolkit
 pip install -r requirements.txt
 ```
 
