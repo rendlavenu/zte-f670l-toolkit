@@ -62,6 +62,23 @@ pip install -r requirements.txt
 
 ---
 
+## 🎯 What Can Be Achieved (Key Use Cases)
+
+This toolkit unlocks the full hardware capabilities of the ZTE F670L, resolving common ISP restrictions:
+
+| Goal / Use Case | Why It's Needed | How It's Achieved | Documentation / Script |
+| :--- | :--- | :--- | :--- |
+| **True WAN Bridge Mode** | Eliminate Double NAT, bufferbloat, and allow your own router (pfSense, OPNsense, UniFi, OpenWrt) to dial PPPoE. | Binds WAN VLAN 100 directly to a designated Ethernet LAN port. | [`enable_bridge.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/enable_bridge.py) |
+| **Extract PPPoE Credentials** | ISPs do not provide PPPoE passwords in the web interface. | Dumps plaintext PPPoE username and password directly from flash NVRAM (`PPPIF`). | [`extract_credentials.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/extract_credentials.py) |
+| **VoIP / SIP Landline on Mobile / PBX** | Use your ISP landline number on softphones (Zoiper, Grandstream) or Asterisk/FreePBX without an analog phone. | Extracts SIP account ID, MD5 digest password, and regional IMS SBC proxy addresses. | [`docs/voip_sip.md`](file:///home/broken/myWorld/f670l-toolkit/docs/voip_sip.md) |
+| **GPON ONT Cloning & SFP Migration** | Completely replace the ISP router with a third-party SFP stick (DFP-34X-2C2, Huawei MA5671A, CarlitoxxPro). | Extracts GPON Serial (ASCII & Hex), SLID / PLOAM password, LOID, and OMCI Equipment ID. | [`docs/gpon_cloning.md`](file:///home/broken/myWorld/f670l-toolkit/docs/gpon_cloning.md) |
+| **Disable ISP Remote Overwrites (TR-069)** | Prevent ISP ACS servers from periodically resetting custom DNS, Wi-Fi, or Bridge Mode settings. | Disables the internal CWMP periodic inform client (`Tr069Cfg 0 Enable 0`). | [`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md) |
+| **Unhide Web Menus & Elevate SuperAdmin** | Unlock hidden IPv6 DHCP, static routes, and advanced controls disabled in the Airtel web GUI. | Unhides GUI buttons (`UserIF 0 ExtraDwd 0`) and elevates web login to Level 1 SuperAdmin (`DevAuthInfo 1 Level 1`). | [`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md) |
+| **Fix IPv6 DNS Leaks (Pi-hole / AdGuard)** | ISP firmware advertises ISP DNS over IPv6 RDNSS, bypassing local ad-blockers. | Decouples WAN IPv6 DNS and routes all gateway queries strictly to local Pi-hole addresses. | [`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md) |
+| **CLI Telemetry & Fiber Health Monitoring** | Monitor optical receive power (Rx dBm), CPU/RAM load, and Wi-Fi RSSI without logging into the web GUI. | Real-time CLI telemetry and connected device discovery. | [`scripts/router_ctl.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/router_ctl.py) |
+
+---
+
 ## 📐 Architecture & Protocol Flow
 
 The toolkit interacts with the gateway's undocumented factory diagnostic engine (`/webFac` and `/webFacEntry`) to initialize a root Telnet daemon on TCP port 23:
