@@ -1,72 +1,94 @@
-# ZTE ZXHN F670L Root & Management Toolkit
+# ZTE ZXHN F670L Root Access & Telnet Unlocker
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Target Hardware](https://img.shields.io/badge/Target-ZTE%20ZXHN%20F670L%20V9.0-blue.svg)](#)
 [![Firmware](https://img.shields.io/badge/Firmware-V9.0.10P18N3D-brightgreen.svg)](#)
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![Access](https://img.shields.io/badge/Access-Root%20BusyBox%20(%2F%20%23%20)-red.svg)](#)
 
-Target-focused root exploit, credential extractor, and bridge mode configurator for the **ZTE ZXHN F670L GPON Gateway** (Hardware V9.0, firmware `V9.0.10P18N3D` and V9.0 variants, commonly deployed on Airtel Xstream Fiber).
+A reverse-engineered root exploit and management toolkit for the **ZTE ZXHN F670L GPON Gateway** (Hardware V9.0, running firmware `V9.0.10P18N3D` and V9.0 variants, commonly deployed on Airtel Xstream Fiber).
 
-Unlocks the factory diagnostic interface (`/webFac`) to provide root BusyBox shell access, extract locked carrier credentials, and configure true WAN Bridge Mode for third-party routers.
+Bypasses the locked carrier environment by exploiting the hidden factory diagnostic endpoint (`/webFac`), solving its cryptographic challenge, and spawning an interactive **root BusyBox ash shell (`/ # `)** on Telnet port 23.
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Gaining Root Access
 
+### 1. Install Dependencies
 ```bash
 git clone https://github.com/rendlavenu/f670l-toolkit.git
 cd f670l-toolkit
 pip install -r requirements.txt
+```
 
-# 1. Spawn interactive root BusyBox ash shell (/ # )
+### 2. Spawn Root Shell
+```bash
 ./scripts/router_shell.py
+```
+*Automatically solves the modular exponentiation challenge, derives the AES-128-ECB session key, authenticates web credentials (`admin:admin`), elevates the factory session, and connects you to a root terminal:*
 
-# 2. Extract PPPoE, VoIP SIP, GPON SN, and Wi-Fi credentials
-./scripts/extract_credentials.py
+```text
+[*] Solved factory handshake & derived AES session key.
+[*] FactoryMode mode=2 elevated. Telnet port 23 active.
+[*] Connecting to telnet session...
 
-# 3. Enable true WAN Bridge Mode on LAN4 (for pfSense, OPNsense, UniFi, OpenWrt)
-./scripts/enable_bridge.py --lan-port 4
+BusyBox v1.17.2 (2025-06-27) built-in shell (ash)
+Enter 'help' for a list of built-in commands.
 
-# 4. Check real-time optical power (Rx/Tx dBm), CPU/RAM load, and connected devices
-./scripts/router_ctl.py status
+/ # 
 ```
 
 ---
 
-## 🛠 Core Tools
+## 🛠 What Root Access Enables
 
-| Script | Command | Purpose |
-| :--- | :--- | :--- |
-| [`router_shell.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/router_shell.py) | `./scripts/router_shell.py` | Solves `/webFac` challenge-response and opens an interactive root shell (`/ # `) via Telnet port 23. |
-| [`extract_credentials.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/extract_credentials.py) | `./scripts/extract_credentials.py [--json]` | Extracts plaintext PPPoE, SIP VoIP passwords, GPON SN (ASCII/Hex), SLID/PLOAM, and Wi-Fi keys from NVRAM. |
-| [`enable_bridge.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/enable_bridge.py) | `./scripts/enable_bridge.py --lan-port 4` | Binds WAN VLAN 100 directly to a physical LAN port to eliminate Double NAT on external routers. |
-| [`router_ctl.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/router_ctl.py) | `./scripts/router_ctl.py {status\|who\|wifi}` | CLI tool for gateway uptime, optical power metrics, CPU/RAM utilization, and connected client discovery. |
+With root shell access (`uid=0`), you can directly manipulate the router's internal database (`sendcmd 1 DB`) or run the included automated scripts:
+
+### 1. Extract Locked Credentials
+```bash
+./scripts/extract_credentials.py [--json]
+```
+Dumps plaintext **PPPoE** credentials, **VoIP SIP** passwords and SBC proxies, **GPON Serial Numbers** (ASCII & Hex), SLID/PLOAM tokens, and Wi-Fi pre-shared keys directly from flash NVRAM.
+
+### 2. Enable True WAN Bridge Mode
+```bash
+./scripts/enable_bridge.py --lan-port 4
+```
+Binds WAN VLAN 100 directly to physical LAN Port 4, allowing third-party routers (pfSense, OPNsense, UniFi, OpenWrt) to dial PPPoE without Double NAT.
+
+### 3. Direct NVRAM Control (`sendcmd 1 DB`)
+```bash
+sendcmd 1 DB p PPPIF          # View PPPoE account
+sendcmd 1 DB p VoIPSIPLine     # View VoIP SIP credentials
+sendcmd 1 DB p GPON            # View optical serial & PLOAM
+sendcmd 1 DB set DevAuthInfo 1 Level 1  # Elevate web user to SuperAdmin
+sendcmd 1 DB save              # Commit in-memory changes to SPI flash
+```
 
 ---
 
-## 📚 Technical Documentation
+## 📚 Deep Technical Documentation
 
-Detailed guides and protocol breakdowns are organized in [`docs/`](file:///home/broken/myWorld/f670l-toolkit/docs/):
+Detailed protocol breakdowns and configuration walk-throughs are located in [`docs/`](file:///home/broken/myWorld/f670l-toolkit/docs/):
 
-* **[Root Access Technical Analysis](file:///home/broken/myWorld/f670l-toolkit/docs/root_access.md)**: Deep breakdown of the `/webFac` challenge, modular arithmetic solver (`rss.py`), and AES key derivation.
-* **[Router Hardening & Debloating Guide](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md)**: Fix IPv6 DNS leaks (Pi-hole), block carrier firmware updates, neutralize 3 AM reboots, and free 16 MB RAM.
-* **[VoIP SIP Configuration Guide](file:///home/broken/myWorld/f670l-toolkit/docs/voip_sip.md)**: Airtel Voice VLAN 660 network topology, codec requirements, and softphone client setup.
-* **[GPON Optical Identity Cloning](file:///home/broken/myWorld/f670l-toolkit/docs/gpon_cloning.md)**: ONT replacement and provisioning parameters for third-party SFP optical sticks.
-* **[Database Command Reference (`sendcmd 1 DB`)](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md)**: Internal NVRAM configuration tables, parameter mapping, and manual modification commands.
+* **[`docs/root_access.md`](file:///home/broken/myWorld/f670l-toolkit/docs/root_access.md)**: Cryptographic reverse-engineering of `/webFac`, `do_check_client` polynomial math, and AES key derivation.
+* **[`docs/router_hardening.md`](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md)**: Stop IPv6 DNS leaks (Pi-hole), block carrier firmware overwrites, neutralize 3 AM reboots, and free 16 MB RAM.
+* **[`docs/voip_sip.md`](file:///home/broken/myWorld/f670l-toolkit/docs/voip_sip.md)**: Route extracted landline SIP credentials through smartphone softphones (Zoiper) or Asterisk PBX.
+* **[`docs/gpon_cloning.md`](file:///home/broken/myWorld/f670l-toolkit/docs/gpon_cloning.md)**: Clone optical serial numbers onto third-party SFP ONT sticks to eliminate the ISP gateway entirely.
+* **[`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md)**: Full reference table of internal configuration tables and database operations.
 
 ---
 
-## ⚠️ Important Invariants
+## ⚠️ Essential Invariants
 
-1. **Persistent Flash Save**: Modifications made via `sendcmd 1 DB set ...` reside only in volatile RAM. Always execute `sendcmd 1 DB save` to persist changes across reboots.
-2. **Subnet Requirement**: Host PC must be directly connected via LAN 1–3 or Wi-Fi with an IP in `192.168.1.0/24`.
-3. **TR-069 Awareness**: To prevent ISP ACS servers from overwriting custom bridge mode or DNS configurations, set `MgtServer.UpgradesManaged = 0` or disable TR-069 (see [Hardening Guide](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md)).
+1. **Commit Changes**: Modifications made via `sendcmd 1 DB set ...` reside in RAM. You must run `sendcmd 1 DB save` to persist across reboots.
+2. **Subnet**: Host PC must be directly connected via LAN 1–3 or Wi-Fi on `192.168.1.0/24`.
+3. **Carrier Overwrites**: To stop ISP ACS servers from undoing your changes, disable TR-069 via `sendcmd 1 DB set Tr069Cfg 0 Enable 0 && sendcmd 1 DB save`.
 
 ---
 
 ## ⚖️ Legal & Safety Disclaimer
 
 > [!WARNING]
-> * **Authorized Personal Use**: This toolkit is strictly for diagnostics, research, and personal equipment administration on hardware you own or are authorized to manage (compliant with CFAA, Indian IT Act 2000, and statutory interoperability exemptions).
-> * **Optical Laser Safety**: Fiber connections use Class 1 invisible infrared lasers (1310/1490 nm). Never look directly into optical ports or fiber cores.
-> * **No Warranty**: Provided "AS IS" under the MIT License. The authors bear no responsibility for ISP terms of service violations, service disruption, or hardware misconfiguration.
+> * **Authorized Personal Use**: Strictly for diagnostics, security research, and personal equipment administration on hardware you own or have explicit authorization to test (compliant with CFAA, Indian IT Act 2000, and statutory interoperability exemptions).
+> * **Laser Hazard**: Fiber optic lines use Class 1 invisible infrared lasers. Never look directly into optical ports or fiber patch cables.
+> * **No Warranty**: Provided "AS IS" under the MIT License without liability for ISP terms violations or hardware misconfiguration.
