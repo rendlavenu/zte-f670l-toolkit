@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """
 extract_credentials.py - Automated Credential Extractor for ZTE ZXHN F670L
 
@@ -13,7 +14,7 @@ Usage:
   ./scripts/extract_credentials.py --json > credentials.json
   ./scripts/extract_credentials.py --host 192.168.1.1 --user admin --password secret
 
-License: MIT
+Disclaimer: For authorized device administration, research, and personal equipment only.
 """
 
 import sys

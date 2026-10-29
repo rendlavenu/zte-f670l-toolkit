@@ -1,6 +1,6 @@
 # AI Assistant Guide & Repository Instructions
 
-This document provides architectural context, hardware invariants, and safety guidelines for AI assistants (Claude Code, Antigravity, Cursor, Copilot) working on this repository.
+This document provides architectural context, hardware invariants, and safety guidelines for AI assistants (Antigravity, Claude Code, Cursor, Copilot) working on this repository.
 
 ---
 
@@ -33,13 +33,17 @@ This document provides architectural context, hardware invariants, and safety gu
    - When users configure custom Bridge Mode or DNS settings, be aware that ISP ACS servers may query the router via TR-069 and overwrite parameters.
    - Suggest disabling periodic inform via `sendcmd 1 DB set Tr069Cfg 0 Enable 0` if persistent custom configurations are required.
 
+5. **Safety & Regulatory Compliance**:
+   - Always include standard optical laser safety warnings when discussing fiber or SFP ONT replacement.
+   - Maintain the standard legal disclaimer regarding authorized personal use, ISP Subscriber Agreements, and emergency telephony services.
+
 ---
 
 ## 3. Toolset & Architecture
 
 ```text
 f670l-toolkit/
-├── README.md                  # Main guide
+├── README.md                  # Main guide & documentation
 ├── AGENT.md                   # AI Assistant instructions (this file)
 ├── CLAUDE.md                  # Symlink to AGENT.md
 ├── requirements.txt           # Python dependencies (requests, pycryptodome)
@@ -49,6 +53,7 @@ f670l-toolkit/
 ├── scripts/
 │   ├── router_shell.py        # Interactive root BusyBox shell
 │   ├── extract_credentials.py # Automated credential extraction tool
+│   ├── router_ctl.py          # Command-line status, telemetry & client discovery
 │   └── enable_bridge.py       # WAN bridge mode configurator
 └── docs/
     ├── root_access.md         # /webFac protocol & cryptographic analysis
@@ -70,4 +75,7 @@ python3 -m py_compile lib/zte_unlock.py lib/rss.py scripts/*.py
 
 # Test credential extraction
 ./scripts/extract_credentials.py --host 192.168.1.1
+
+# Query router telemetry
+./scripts/router_ctl.py status
 ```

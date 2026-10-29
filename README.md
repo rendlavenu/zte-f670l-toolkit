@@ -1,18 +1,21 @@
 # ZTE ZXHN F670L Root & Management Toolkit
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Target Hardware](https://img.shields.io/badge/Target-ZTE%20ZXHN%20F670L%20V9.0-blue.svg)](#)
-[![Tested Firmware](https://img.shields.io/badge/Firmware-V9.0.10P18N3D-brightgreen.svg)](#)
+[![Hardware Version](https://img.shields.io/badge/Target%20Hardware-ZTE%20ZXHN%20F670L%20V9.0-blue.svg)](#)
+[![Tested Firmware](https://img.shields.io/badge/Tested%20Firmware-V9.0.10P18N3D-brightgreen.svg)](#)
+[![Python Version](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![SoC Architecture](https://img.shields.io/badge/SoC-Sanechips%20ZX279128S%20(ARMv7)-orange.svg)](#)
 
-A target-focused reverse-engineering and automation toolkit for the **ZTE ZXHN F670L GPON Gateway** (Hardware V9.0, running firmware `V9.0.10P18N3D` and V9.0 variants, commonly deployed on Airtel Xstream Fiber).
+A target-focused reverse-engineering, diagnostic, and automation toolkit for the **ZTE ZXHN F670L GPON Gateway** (Hardware Version V9.0, running firmware `V9.0.10P18N3D` and V9.0 variants, commonly deployed on Airtel Xstream Fiber and generic FTTH networks).
 
-Provides tools to spawn a root BusyBox shell via the factory diagnostic interface, extract locked credentials (PPPoE, VoIP SIP, GPON SN), and configure true Bridge Mode for third-party routers.
+Provides tools to spawn an interactive root BusyBox ash shell via the factory diagnostic interface, extract provisioned credentials (PPPoE, VoIP SIP, GPON optical identifiers, Wi-Fi keys), query real-time gateway telemetry, and configure WAN Bridge Mode for external routers.
 
 ---
 
 ## ⚡ Quick Start
 
-### 1. Install Dependencies
+### 1. Installation
+
 ```bash
 git clone https://github.com/rendlavenu/f670l-toolkit.git
 cd f670l-toolkit
@@ -20,73 +23,177 @@ pip install -r requirements.txt
 ```
 
 ### 2. Spawn an Interactive Root Shell
+
 ```bash
 ./scripts/router_shell.py
 ```
-*(Prompts for router web credentials, solves the cryptographic factory handshake, and opens a root BusyBox ash shell: `/ # `).*
+*Prompts for web administrator credentials, solves the cryptographic factory handshake, and opens a root BusyBox ash shell (`/ # `).*
 
-### 3. Extract All Credentials (PPPoE, VoIP SIP, GPON SN, Wi-Fi)
+### 3. Extract Provisioned Credentials
+
 ```bash
+# Print formatted human-readable credentials
 ./scripts/extract_credentials.py
-```
-*(Prints a structured table of PPPoE internet credentials, VoIP SIP passwords, GPON optical provisioning tokens, and Wi-Fi pre-shared keys. Use `--json` for machine-readable output).*
 
-### 4. Enable WAN Bridge Mode
+# Export machine-readable JSON for automated provisioning
+./scripts/extract_credentials.py --json > credentials.json
+```
+*Extracts plaintext PPPoE authentication, VoIP SIP credentials and SBC proxy addresses, GPON optical serial numbers (ASCII & Hex), SLID/PLOAM passwords, and Wi-Fi WPA2/WPA3 keys.*
+
+### 4. Query Real-Time System Telemetry
+
+```bash
+# Gateway overview (CPU, RAM, optical power, uptime)
+./scripts/router_ctl.py status
+
+# Connected network clients (IP, MAC, hostname, RSSI)
+./scripts/router_ctl.py who
+
+# Wi-Fi radio configurations (SSID, channel, encryption)
+./scripts/router_ctl.py wifi
+```
+
+### 5. Enable True WAN Bridge Mode
+
 ```bash
 ./scripts/enable_bridge.py --lan-port 4
 ```
-*(Bridges WAN VLAN 100 directly to LAN4 for third-party routers like pfSense, OPNsense, OpenWrt, or UniFi).*
+*Binds WAN VLAN 100 directly to physical LAN Port 4 for external routers (pfSense, OPNsense, OpenWrt, UniFi).*
 
 ---
 
-## 📌 Features & Capabilities
+## 📐 Architecture & Protocol Flow
 
-| Capability | Tool / Script | Description |
-| :--- | :--- | :--- |
-| **Interactive Root Shell** | [`scripts/router_shell.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/router_shell.py) | Full terminal access to router OS (Linux 4.1.25 / BusyBox v1.17.2). |
-| **Credential Extraction** | [`scripts/extract_credentials.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/extract_credentials.py) | Reads plaintext PPPoE, SIP, GPON SN, and Wi-Fi keys directly from flash memory. |
-| **Bridge Mode Setup** | [`scripts/enable_bridge.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/enable_bridge.py) | Binds physical LAN ports to WAN VLAN 100 for external router PPPoE dialing. |
-| **Cryptographic Engine** | [`lib/zte_unlock.py`](file:///home/broken/myWorld/f670l-toolkit/lib/zte_unlock.py) | Implements modular arithmetic solver and AES key derivation for `/webFac`. |
+The toolkit interacts with the gateway's undocumented factory diagnostic engine (`/webFac` and `/webFacEntry`) to initialize a root Telnet daemon on TCP port 23:
 
----
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as Client Host (PC)
+    participant Web as Gateway HTTP Server (:80/:443)
+    participant Engine as Diagnostic Engine (/webFacEntry)
+    participant Telnet as Factory Telnet Daemon (:23)
+    participant Flash as Persistent NVRAM (sendcmd)
 
-## 🛠 Manual Database Reference (`sendcmd 1 DB`)
+    Client->>Web: POST /webFac (SendSq.gch)
+    Web-->>Client: HTTP 400 (Factory Session Reset)
 
-Once inside the root shell (`/ # `), use `sendcmd 1 DB` to inspect or modify router settings directly:
+    Client->>Web: POST /webFac (RequestFactoryMode.gch)
+    Web-->>Client: HTTP 200 (Challenge Request Accepted)
 
-```bash
-# Print tables:
-sendcmd 1 DB p PPPIF          # PPPoE credentials
-sendcmd 1 DB p VoIPSIPLine     # SIP username & password
-sendcmd 1 DB p VoIPSIPServer   # SIP Registrar & Outbound Proxy
-sendcmd 1 DB p GPON            # GPON Serial Number & PLOAM password
-sendcmd 1 DB p WLANBase        # Wi-Fi SSIDs & WPA pre-shared keys
-sendcmd 1 DB p PortControl     # Physical port mapping matrix
-sendcmd 1 DB p DevInfo         # Hardware & firmware identity
+    Client->>Web: POST /webFac (SendSq.gch?rand=0)
+    Web-->>Client: Challenge: re_rand={rand}&seed={seed}&server_mac={mac}
 
-# Commit changes to persistent flash (MANDATORY after set):
-sendcmd 1 DB save
+    Note over Client: 1. Resolve local client MAC via 'ip route get'<br/>2. Solve modular exponentiation polynomial (rss.py)<br/>3. Derive 24-byte AES-ECB key from firmware KEY_POOL
+
+    Client->>Engine: POST /webFacEntry (SendInfo.gch?info={aes_payload})
+    Engine-->>Client: HTTP 200 (Challenge Verified)
+
+    Client->>Engine: POST /webFacEntry (CheckLoginAuth.gch?auth={aes_creds})
+    Engine-->>Client: HTTP 200 (Administrator Authenticated)
+
+    Client->>Engine: POST /webFacEntry (FactoryMode.gch?mode=2)
+    Engine-->>Client: FactoryModeAuth.gch?user={tmp_user}&pass={tmp_pass}
+
+    Note over Telnet: Telnet daemon starts on TCP port 23
+
+    Client->>Telnet: TCP Connect (:23) + Authenticate with temporary session token
+    Telnet-->>Client: Root BusyBox ash shell ("/ # ")
+
+    Client->>Flash: Execute 'sendcmd 1 DB' queries / updates
+    Flash-->>Client: Structured configuration tables (PPPIF, VoIPSIPLine, GPON)
 ```
 
 ---
 
-## 🔍 Critical Edge Cases & Troubleshooting
+## 🛠 Toolset Reference
 
-### 1. Connection Timeout or Connection Refused
-* **Cause**: Client PC is not on the same subnet as the gateway, or connected via an external router.
-* **Fix**: Connect your PC directly to LAN 1–3 or Wi-Fi of the F670L. Ensure your IP is in `192.168.1.x`.
+### 1. `router_shell.py` - Interactive Root Terminal
+Establishes a raw PTY terminal connected to the gateway's BusyBox v1.17.2 ash shell.
 
-### 2. Handshake Failure on Step 4 (`CheckLoginAuth`)
-* **Cause**: Incorrect web admin username or password, or another active web session holding the lock.
-* **Fix**: Log out of the web interface in your browser, wait 10 seconds, and rerun `./scripts/router_shell.py`.
+```text
+Usage:
+  ./scripts/router_shell.py [OPTIONS]
 
-### 3. TR-069 Configuration Overwrite
-* **Cause**: ISP ACS servers periodically query the router and re-apply default configuration profiles.
-* **Fix**: To prevent TR-069 from reverting custom settings, disable the TR-069 periodic inform client via the root shell:
-  ```bash
-  sendcmd 1 DB set Tr069Cfg 0 Enable 0
-  sendcmd 1 DB save
-  ```
+Options:
+  --host TEXT      Gateway IP address [default: 192.168.1.1 or $ROUTER_IP]
+  --user TEXT      Web administrator username [default: $ROUTER_USER or prompt]
+  --password TEXT  Web administrator password [default: $ROUTER_PASS or prompt]
+```
+
+### 2. `extract_credentials.py` - Credential Harvester
+Queries the gateway database tables over the factory Telnet session and parses all active credentials.
+
+```text
+Usage:
+  ./scripts/extract_credentials.py [OPTIONS]
+
+Options:
+  --host TEXT      Gateway IP address [default: 192.168.1.1]
+  --user TEXT      Web administrator username
+  --password TEXT  Web administrator password
+  --json           Output raw machine-readable JSON to stdout
+```
+
+### 3. `router_ctl.py` - CLI Gateway Telemetry
+Queries the authenticated web management interface to retrieve real-time diagnostic metrics.
+
+```text
+Usage:
+  ./scripts/router_ctl.py [OPTIONS] {status|who|wifi}
+
+Commands:
+  status           Display gateway uptime, CPU load, RAM usage, and optical power (Rx/Tx)
+  who              List connected Ethernet and Wi-Fi clients (IP, MAC, host, signal)
+  wifi             Display radio settings (2.4GHz / 5GHz channels, SSIDs, security)
+```
+
+### 4. `enable_bridge.py` - WAN Bridge Mode Configurator
+Reconfigures internal port mapping tables to bind WAN VLAN 100 directly to a designated Ethernet port.
+
+```text
+Usage:
+  ./scripts/enable_bridge.py [OPTIONS]
+
+Options:
+  --lan-port INT   Physical LAN port to bridge [1-4, default: 4]
+  --host TEXT      Gateway IP address [default: 192.168.1.1]
+```
+
+---
+
+## 🗄 Low-Level Database Reference (`sendcmd 1 DB`)
+
+Inside the root shell (`/ # `), use the internal `sendcmd 1 DB` utility to query or configure flash tables directly:
+
+```bash
+# Read configuration tables:
+sendcmd 1 DB p PPPIF          # PPPoE authentication username & password
+sendcmd 1 DB p VoIPSIPLine     # VoIP telephone number & SIP password
+sendcmd 1 DB p VoIPSIPServer   # SIP Registrar & Outbound Proxy SBC
+sendcmd 1 DB p GPON            # GPON Serial Number & PLOAM/SLID password
+sendcmd 1 DB p WLANBase        # Wi-Fi SSIDs, passwords, and radio channels
+sendcmd 1 DB p PortControl     # Physical port binding matrix
+sendcmd 1 DB p DevInfo         # Hardware serial & software version
+
+# Commit changes to persistent flash storage (MANDATORY):
+sendcmd 1 DB save
+```
+
+> [!IMPORTANT]
+> Any modifications made via `sendcmd 1 DB set ...` reside strictly in volatile RAM. If the gateway reboots before you execute `sendcmd 1 DB save`, all changes are discarded.
+
+---
+
+## 🔧 Diagnostics & Troubleshooting
+
+| Symptom / Error | Root Cause | Resolution |
+| :--- | :--- | :--- |
+| `Connection refused` / `Timeout` on port 80/443 | Host PC is not on the same subnet as the gateway. | Connect via Ethernet directly to LAN ports 1–3 or Wi-Fi. Ensure host IP is in `192.168.1.0/24`. |
+| `Step 4 CheckLoginAuth failed: 401` | Incorrect web administrator credentials or concurrent session lock. | Log out of the web interface in your browser, wait 10 seconds, and retry. |
+| `local mismatch` in `rss.py` | Client MAC detection did not match the interface routing to the gateway. | The toolkit uses `ip route get <target>` dynamically. If running in a container, ensure `--net=host` is used. |
+| Telnet port 23 unreachable after handshake | Factory session was closed prematurely or conflicting session is open. | Re-run `router_shell.py`; the script executes a mandatory factory reset (`SendSq.gch`) before negotiating. |
+| Settings revert after gateway reboot | `sendcmd 1 DB save` was not executed, or TR-069 ACS pushed carrier defaults. | Run `sendcmd 1 DB save` after all modifications. To block ACS overrides, disable TR-069 via `sendcmd 1 DB set Tr069Cfg 0 Enable 0 && sendcmd 1 DB save`. |
 
 ---
 
@@ -94,30 +201,50 @@ sendcmd 1 DB save
 
 ```text
 f670l-toolkit/
-├── README.md                  # Technical guide & quick start
-├── LICENSE                    # MIT License
-├── requirements.txt           # Python dependencies (requests, pycryptodome)
-├── AGENT.md                   # AI Assistant instructions
+├── README.md                  # System documentation & usage instructions
+├── LICENSE                    # MIT Open Source License
+├── requirements.txt           # Python library dependencies (requests, pycryptodome)
+├── AGENT.md                   # AI Assistant architectural invariants & domain guidelines
 ├── CLAUDE.md                  # Symlink to AGENT.md
 ├── lib/
-│   ├── zte_unlock.py          # /webFac cryptographic handshake engine
-│   └── rss.py                 # Modular exponentiation solver (do_check_client)
+│   ├── zte_unlock.py          # /webFac challenge-response & AES key derivation
+│   └── rss.py                 # Modular exponentiation solver (verify_do_check_client)
 ├── scripts/
-│   ├── router_shell.py        # Interactive root BusyBox shell
+│   ├── router_shell.py        # Interactive root BusyBox terminal connector
 │   ├── extract_credentials.py # Automated credential extraction tool
-│   └── enable_bridge.py       # WAN bridge mode configurator
+│   ├── router_ctl.py          # Command-line status, telemetry & client discovery
+│   └── enable_bridge.py       # Automated WAN Bridge Mode configurator
 └── docs/
     ├── root_access.md         # /webFac protocol & cryptographic analysis
-    ├── voip_sip.md            # VoIP configuration & softphone client setup
-    ├── gpon_cloning.md        # GPON ONT replacement & SFP stick guide
-    └── sendcmd_reference.md   # Internal database manipulation reference
+    ├── voip_sip.md            # VoIP VLAN architecture & softphone setup
+    ├── gpon_cloning.md        # Optical serial provisioning & third-party SFP guide
+    └── sendcmd_reference.md   # Internal NVRAM database manipulation reference
 ```
 
 ---
 
-## ⚠️ Disclaimer & Legal Notice
+## ⚖️ Legal, Regulatory, and Safety Disclaimers
 
-> [!WARNING]
-> 1. **Educational & Research Purpose Only**: This toolkit is provided strictly for personal network administration, interoperability testing, and security research under fair-use provisions.
-> 2. **No Warranty & Limitation of Liability**: Modifying router configurations carries inherent risks of service disruption or misconfiguration. Provided "AS IS" without warranty of any kind.
-> 3. **Trademarks**: All trademarks, brand names, and models (ZTE, ZXHN, Airtel) cited herein belong to their respective owners and are referenced solely for technical identification.
+### 1. Authorized Personal Use & Legal Notice
+This software is provided strictly for diagnostic, administrative, interoperability, and educational purposes on customer premises equipment (CPE) that you personally own or have explicit authorization to administer.
+* **United States**: Accessing computer systems without authorization or exceeding authorized access is governed by the *Computer Fraud and Abuse Act (CFAA), 18 U.S.C. § 1030*.
+* **India**: Unauthorized access or tampering with computer systems is governed by the *Information Technology Act, 2000 (Sections 43 and 66)*.
+* **International**: Users are solely responsible for ensuring compliance with all local laws and telecommunications regulations in their respective jurisdictions before deploying this toolkit.
+
+### 2. Statutory Interoperability & Research Exceptions
+This reverse-engineering research and documentation has been performed strictly to enable device interoperability, hardware analysis, and customer data extraction under applicable fair-use and statutory exemptions:
+* **European Union**: *Directive 2009/24/EC, Article 6* (Decompilation strictly for interoperability).
+* **United States**: *17 U.S.C. § 1201(f)* (Reverse engineering for the purpose of achieving interoperability).
+* **India**: *Indian Copyright Act, 1957, Section 52(1)(ab)* (Observation, study, or testing of computer program functioning).
+
+### 3. Telecommunications & ISP Terms of Service
+Customer premises gateways provided by Internet Service Providers (ISPs) under subscription contracts remain subject to the provider's Subscriber Terms and Conditions. Modifying internal gateway settings, disabling remote management (TR-069), or replacing the provider-issued ONT with third-party hardware may violate your service agreement, invalidate hardware warranties, or prompt the service provider to suspend optical service. The authors and contributors of this repository bear no affiliation with Bharti Airtel, ZTE Corporation, or any affiliated telecommunications provider.
+
+### 4. Optical Laser Radiation Hazard
+Broadband fiber connections utilize Class 1 / Class 1M infrared laser emitters operating at nominal wavelengths of 1310 nm and 1490 nm. This laser radiation is completely invisible to human vision. **Never look directly into the end of an optical fiber connector, optical patch cable, or transceiver port.** Unprotected exposure can cause rapid, severe, and permanent retinal injury.
+
+### 5. Emergency Telephony Notice (112 / 911 / E911)
+Extracted SIP voice credentials routed through custom softphone clients or third-party PBX installations must **NOT** be relied upon as the primary emergency calling mechanism. Emergency dispatcher routing relies on physical line identification tied to the carrier-provisioned gateway. Always ensure access to an alternative, verified communications channel for emergency services.
+
+### 6. Limitation of Liability & No Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """
 router_shell.py - Interactive Root Shell Connector for ZTE ZXHN F670L
 
@@ -10,7 +11,7 @@ Usage:
   ./scripts/router_shell.py --host 192.168.1.1 --user admin --password secret
   ROUTER_PASS=secret ./scripts/router_shell.py
 
-License: MIT
+Disclaimer: For authorized device administration, research, and personal equipment only.
 """
 
 import sys

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """
 zte_unlock.py - Cryptographic Challenge-Response Engine for ZTE ZXHN F670L
 
@@ -10,7 +11,7 @@ Authenticates against ZTE's hidden /webFac and /webFacEntry endpoints:
 5. Exchanges encrypted handshake with /webFacEntry (SendInfo.gch & CheckLoginAuth.gch).
 6. Requests mode 2 factory elevation (FactoryMode.gch?mode=2), receiving temporary root credentials.
 
-License: MIT
+Disclaimer: For authorized device administration, research, and personal equipment only.
 """
 
 import sys

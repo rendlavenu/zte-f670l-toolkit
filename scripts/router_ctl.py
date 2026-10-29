@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """
 router_ctl.py - Command Line Management & Telemetry for ZTE ZXHN F670L
 
@@ -14,7 +15,7 @@ Usage:
   ./scripts/router_ctl.py wifi
   ./scripts/router_ctl.py --host 192.168.1.1 status
 
-License: MIT
+Disclaimer: For authorized device administration, research, and personal equipment only.
 """
 
 import sys

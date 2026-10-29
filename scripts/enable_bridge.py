@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """
 enable_bridge.py - Automated Bridge Mode Configurator for ZTE ZXHN F670L
 
@@ -9,7 +10,7 @@ Usage:
   sudo ./scripts/enable_bridge.py --lan-port 4
   ./scripts/enable_bridge.py --host 192.168.1.1 --user admin --password secret --lan-port 4
 
-License: MIT
+Disclaimer: For authorized device administration, research, and personal equipment only.
 """
 
 import sys

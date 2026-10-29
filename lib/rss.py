@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""
+rss.py - Modular Exponentiation Solver for ZTE /webFac Challenge
+
+Faithful implementation of the do_check_client validation algorithm embedded
+within the ZTE httpd firmware binary. Computes polynomial transformations
+matching client and gateway interface MAC addresses.
+"""
 import itertools
 
-# should be a faithful implementation of what is implemented in the vm bytecode for
-# do_check_client in the httpd binary.
-# should be a faithful implementation of what is implemented in the vm bytecode for
-# do_check_client in the httpd binary.
 def verify_do_check_client(client_data: list[int], remote_mac_address: bytes,
                            calculated_idx: int, local_mac_address: bytes) -> int:
     processed_word0 = pow(client_data[0], 0x1687, 0x7561)

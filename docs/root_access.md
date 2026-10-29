@@ -1,60 +1,80 @@
 # ZTE ZXHN F670L Root Access Technical Analysis
 
-Target: **ZTE ZXHN F670L GPON Gateway (Hardware V9.0, Firmware V9.0.10P18N3D and V9.0 variants)**
+**Target Hardware**: ZTE ZXHN F670L GPON Gateway (Hardware Version V9.0)  
+**Target Firmware**: `V9.0.10P18N3D` (Build: June 27, 2025) and compatible V9.0 variants  
+**Architecture**: Sanechips / ZTE ZX279128S (Dual-Core ARMv7 Cortex-A9, Linux 4.1.25)
 
 ---
 
-## 1. Vulnerability Architecture: The `/webFac` Interface
+> [!IMPORTANT]
+> **Authorization & Compliance**: This documentation is provided for interoperability research, device administration, and security analysis on privately owned hardware. Execute these procedures only on hardware you are legally authorized to test.
 
-ZTE gateway firmware includes a hidden factory diagnostic endpoint at `/webFac` and `/webFacEntry`. These endpoints allow authorized manufacturing test equipment to elevate privileges and start a temporary root Telnet session on TCP port 23.
+---
 
-### Authentication Protocol Flow
+## 1. Authentication Architecture: The `/webFac` Interface
 
-```
-Client (PC)                                               ZTE F670L Gateway
-    │                                                              │
-    ├── 1. POST /webFac (SendSq.gch) ─────────────────────────────>│ (Reset state)
-    │<── HTTP 400 (Expected reset confirmation) ───────────────────┤
-    │                                                              │
-    ├── 2. POST /webFac (RequestFactoryMode.gch) ─────────────────>│ (Trigger challenge)
-    │                                                              │
-    ├── 3. POST /webFac (SendSq.gch?rand=0) ───────────────────────>│
-    │<── HTTP 200 "re_rand=server_rand&seed&server_mac" ───────────┤
-    │                                                              │
-    │    [Compute Modular Exponentiation using client & server MAC]│
-    │    [Derive 24-byte AES-ECB Key from KEY_POOL offset by seed] │
-    │                                                              │
-    ├── 4. POST /webFacEntry (SendInfo.gch?info=...) [AES encrypted]>│
-    │<── HTTP 200 ─────────────────────────────────────────────────┤
-    │                                                              │
-    ├── 5. POST /webFacEntry (CheckLoginAuth.gch)   [AES encrypted]>│ (Validate web user/pass)
-    │<── HTTP 200 (FactoryMode.gch session token) ─────────────────┤
-    │                                                              │
-    ├── 6. POST /webFacEntry (FactoryMode.gch?mode=2)[AES encrypted]>│ (Elevate privilege)
-    │<── HTTP 200 "FactoryModeAuth.gch?user=<user>&pass=<pass>" ───┤
-    │                                                              │
-    ├── 7. Telnet Connect to Port 23 ─────────────────────────────>│
-    │    (Authenticate with session user/pass)                    │
-    │<── Root BusyBox Ash Prompt ("/ # ") ─────────────────────────┤
+ZTE gateway firmware includes a proprietary diagnostic interface exposed through `/webFac` and `/webFacEntry`. Designed for factory production and automated bench diagnostics, these endpoints validate client identity through a challenge-response handshake before elevating privileges and initiating a local Telnet daemon on TCP port 23.
+
+### Cryptographic Handshake Protocol Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as Client (PC)
+    participant Web as Web Server (/webFac)
+    participant Entry as Diagnostic Engine (/webFacEntry)
+    participant Telnet as Telnet Daemon (:23)
+
+    Client->>Web: POST /webFac (SendSq.gch)
+    Web-->>Client: HTTP 400 (Session Reset)
+
+    Client->>Web: POST /webFac (RequestFactoryMode.gch)
+    Web-->>Client: HTTP 200 (Challenge Initialized)
+
+    Client->>Web: POST /webFac (SendSq.gch?rand=0)
+    Web-->>Client: re_rand={server_rand}&seed={seed}&server_mac={mac}
+
+    Note over Client: 1. Parse client MAC from active routing interface<br/>2. Solve modular exponentiation polynomial (rss.py)<br/>3. Derive 24-byte AES-ECB key from KEY_POOL offset
+
+    Client->>Entry: POST /webFacEntry (SendInfo.gch?info={aes_payload})
+    Entry-->>Client: HTTP 200 (Client Identity Verified)
+
+    Client->>Entry: POST /webFacEntry (CheckLoginAuth.gch?auth={aes_creds})
+    Entry-->>Client: HTTP 200 (Web Authentication Validated)
+
+    Client->>Entry: POST /webFacEntry (FactoryMode.gch?mode=2)
+    Entry-->>Client: FactoryModeAuth.gch?user={tmp_user}&pass={tmp_pass}
+
+    Note over Telnet: Telnet service spawned on port 23
+
+    Client->>Telnet: TCP Connect (:23) + Authenticate (tmp_user / tmp_pass)
+    Telnet-->>Client: Root BusyBox ash prompt ("/ # ")
 ```
 
 ---
 
-## 2. Cryptographic Handshake Details
+## 2. Cryptographic Handshake Specification
 
-### A. Modular Exponentiation Solver (`rss.py`)
-In `httpd`, the function `do_check_client` validates that the client data block matches the client MAC and server MAC:
+### A. Modular Exponentiation Solver (`lib/rss.py`)
+In the gateway `httpd` binary, the internal function `do_check_client` verifies that the submitted client data buffer contains a valid transform matching both the client interface MAC and the gateway MAC:
+
 $$\text{work\_buffer}[i] = (\text{client\_data}[i])^e \pmod m$$
-Where the exponent $e$ and modulus $m$ are derived from word transformations using polynomial $x^{0x1687} \pmod{0x7561}$.
+
+Where the exponent $e$ and modulus $m$ are derived through polynomial exponentiation over the seed:
+$$P(x) = x^{0x1687} \pmod{0x7561}$$
+
+The solver computes inverse operations to construct a 40-byte client token that satisfies `verify_do_check_client`.
 
 ### B. AES-128-ECB Key Derivation
-The key is derived from an 88-byte firmware key pool (`KEY_POOL`):
-$$\text{index} = (\text{client\_xor\_server}) \pmod{60}$$
-$$\text{key}[i] = \text{KEY\_POOL}[\text{index} + i] \oplus \text{0xA5}$$
+All subsequent payloads sent to `/webFacEntry` are encrypted using AES in ECB mode. The 24-byte encryption key is derived dynamically from an internal 88-byte firmware key pool (`KEY_POOL`):
+
+$$\text{offset} = (\text{client\_mac} \oplus \text{server\_mac}) \pmod{60}$$
+$$\text{key}[i] = \text{KEY\_POOL}[\text{offset} + i] \oplus \text{0xA5}$$
 
 ---
 
 ## 3. Session Lifespan & Security Invariants
-- The generated Telnet session user (e.g., `9nU5kSEx`) is temporary and valid for the current factory session.
-- Once factory mode is elevated, TCP port 23 remains open until the router reboots or factory mode is closed.
-- All configuration changes made via `sendcmd 1 DB set ...` must be explicitly committed to flash using `sendcmd 1 DB save`.
+
+1. **Temporary Session Credentials**: The Telnet username (e.g. `9nU5kSEx`) and password returned by `FactoryMode.gch?mode=2` are dynamically generated per factory session.
+2. **Telnet Port Lifecycle**: Port 23 remains listening until the factory session is explicitly terminated (`FactoryMode.gch?mode=0`) or the gateway reboots.
+3. **Database Write Invariant**: Commands executed via `sendcmd 1 DB set ...` operate exclusively on the in-memory SQLite/NVRAM runtime cache. Changes **do not persist across reboot** unless explicitly saved to flash via `sendcmd 1 DB save`.
