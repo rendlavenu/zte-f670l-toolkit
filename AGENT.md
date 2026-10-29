@@ -57,6 +57,7 @@ f670l-toolkit/
 │   └── enable_bridge.py       # WAN bridge mode configurator
 └── docs/
     ├── root_access.md         # /webFac protocol & cryptographic analysis
+    ├── router_hardening.md    # IPv6 DNS leaks, update blocks, reboot fixes & debloating
     ├── voip_sip.md            # VoIP configuration & softphone client setup
     ├── gpon_cloning.md        # GPON ONT replacement & SFP stick guide
     └── sendcmd_reference.md   # Internal database manipulation reference

@@ -72,9 +72,11 @@ This toolkit unlocks the full hardware capabilities of the ZTE F670L, resolving 
 | **Extract PPPoE Credentials** | ISPs do not provide PPPoE passwords in the web interface. | Dumps plaintext PPPoE username and password directly from flash NVRAM (`PPPIF`). | [`extract_credentials.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/extract_credentials.py) |
 | **VoIP / SIP Landline on Mobile / PBX** | Use your ISP landline number on softphones (Zoiper, Grandstream) or Asterisk/FreePBX without an analog phone. | Extracts SIP account ID, MD5 digest password, and regional IMS SBC proxy addresses. | [`docs/voip_sip.md`](file:///home/broken/myWorld/f670l-toolkit/docs/voip_sip.md) |
 | **GPON ONT Cloning & SFP Migration** | Completely replace the ISP router with a third-party SFP stick (DFP-34X-2C2, Huawei MA5671A, CarlitoxxPro). | Extracts GPON Serial (ASCII & Hex), SLID / PLOAM password, LOID, and OMCI Equipment ID. | [`docs/gpon_cloning.md`](file:///home/broken/myWorld/f670l-toolkit/docs/gpon_cloning.md) |
-| **Disable ISP Remote Overwrites (TR-069)** | Prevent ISP ACS servers from periodically resetting custom DNS, Wi-Fi, or Bridge Mode settings. | Disables the internal CWMP periodic inform client (`Tr069Cfg 0 Enable 0`). | [`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md) |
+| **Fix IPv6 DNS Leaks (Pi-hole / AdGuard)** | ISP firmware advertises carrier DNS over IPv6 RDNSS/SLAAC, completely bypassing local ad-blockers. | Decouples WAN IPv6 DNS and routes all gateway queries strictly to local Pi-hole addresses. | [`docs/router_hardening.md`](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md) |
+| **Disable Carrier Auto-Updates & Overwrites** | Prevent ISP ACS servers from remotely resetting custom DNS, Wi-Fi, or Bridge Mode settings. | Disables remote firmware management (`MgtServer UpgradesManaged 0`) or disables TR-069. | [`docs/router_hardening.md`](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md) |
+| **Neutralize Midnight Reboots** | ISP background scripts schedule forced automated gateway reboots at 03:00 AM. | Sets `sr_disabled = 1` in `/userconfig/embedur/` to prevent unsolicited restarts. | [`docs/router_hardening.md`](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md) |
+| **Debloat Telemetry & Free 16 MB RAM** | Background carrier analytics daemons consume CPU, log heavily, and heat up the board. | Neutralizes background MQTT telemetry, stops EasyMesh multicast spam, and clamps printk. | [`docs/router_hardening.md`](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md) |
 | **Unhide Web Menus & Elevate SuperAdmin** | Unlock hidden IPv6 DHCP, static routes, and advanced controls disabled in the Airtel web GUI. | Unhides GUI buttons (`UserIF 0 ExtraDwd 0`) and elevates web login to Level 1 SuperAdmin (`DevAuthInfo 1 Level 1`). | [`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md) |
-| **Fix IPv6 DNS Leaks (Pi-hole / AdGuard)** | ISP firmware advertises ISP DNS over IPv6 RDNSS, bypassing local ad-blockers. | Decouples WAN IPv6 DNS and routes all gateway queries strictly to local Pi-hole addresses. | [`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md) |
 | **CLI Telemetry & Fiber Health Monitoring** | Monitor optical receive power (Rx dBm), CPU/RAM load, and Wi-Fi RSSI without logging into the web GUI. | Real-time CLI telemetry and connected device discovery. | [`scripts/router_ctl.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/router_ctl.py) |
 
 ---
@@ -233,6 +235,7 @@ f670l-toolkit/
 │   └── enable_bridge.py       # Automated WAN Bridge Mode configurator
 └── docs/
     ├── root_access.md         # /webFac protocol & cryptographic analysis
+    ├── router_hardening.md    # IPv6 DNS leaks, update blocks, reboot fixes & debloating
     ├── voip_sip.md            # VoIP VLAN architecture & softphone setup
     ├── gpon_cloning.md        # Optical serial provisioning & third-party SFP guide
     └── sendcmd_reference.md   # Internal NVRAM database manipulation reference
