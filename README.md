@@ -5,9 +5,11 @@
 [![Firmware](https://img.shields.io/badge/Firmware-V9.0.10P18N3D-brightgreen.svg)](#)
 [![Access](https://img.shields.io/badge/Access-Root%20BusyBox%20(%2F%20%23%20)-red.svg)](#)
 
-A reverse-engineered root exploit and management toolkit for the **ZTE ZXHN F670L GPON Gateway** (Hardware V9.0, running firmware `V9.0.10P18N3D` and V9.0 variants, commonly deployed on Airtel Xstream Fiber).
+A reverse-engineered root exploit and automation toolkit for the **ZTE ZXHN F670L GPON Gateway** (Hardware V9.0, firmware `V9.0.10P18N3D` and V9.0 variants, commonly deployed on Airtel Xstream Fiber).
 
-Bypasses the locked carrier environment by exploiting the hidden factory diagnostic endpoint (`/webFac`), solving its cryptographic challenge, and spawning an interactive **root BusyBox ash shell (`/ # `)** on Telnet port 23.
+Exploits the hidden factory diagnostic interface (`/webFac`) to spawn an interactive **root BusyBox ash shell (`/ # `)** on Telnet port 23—allowing you to eliminate carrier IPv6 DNS leaks, extract plaintext credentials (PPPoE, VoIP SIP, GPON SN), and configure true WAN Bridge Mode.
+
+> **Why this exists**: It began with eliminating carrier IPv6 DNS leaks that bypassed local network resolvers (Pi-hole/AdGuard) with no web UI toggle to disable them. Gaining root access via `/webFac` solved that leak at the source, and naturally opened up raw credential extraction, true Bridge Mode, and persistent firmware controls.
 
 ---
 
