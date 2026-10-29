@@ -39,6 +39,32 @@ Enter 'help' for a list of built-in commands.
 
 ---
 
+## 📐 How the Root Unlock Works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Client Host (PC)
+    participant Web as HTTP Server (/webFac)
+    participant Engine as Diagnostic Engine (/webFacEntry)
+    participant Shell as Telnet Daemon (:23)
+
+    User->>Web: Request factory diagnostic challenge
+    Web-->>User: Returns random seed & gateway MAC
+
+    Note over User: 1. Solves modular polynomial (rss.py)<br/>2. Derives 24-byte AES-ECB key from firmware pool
+
+    User->>Engine: Sends AES-encrypted identity & admin credentials
+    Engine-->>User: Authentication verified (FactoryMode mode=2 activated)
+
+    Note over Shell: Telnet daemon starts on TCP port 23
+
+    User->>Shell: Connects with temporary factory session token
+    Shell-->>User: Interactive Root BusyBox ash shell ("/ # ")
+```
+
+---
+
 ## 🛠 What Root Access Enables
 
 With root shell access (`uid=0`), you can directly manipulate the router's internal database (`sendcmd 1 DB`) or run the included automated scripts:
