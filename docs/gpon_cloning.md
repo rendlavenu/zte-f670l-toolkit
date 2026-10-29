@@ -20,7 +20,7 @@
 
 ## 1. Parameters Required for Upstream OLT Authorization
 
-GPON Optical Line Terminals (OLTs) validate customer ONTs during Phase O3 (Serial Number acquisition) and Phase O4 (Ranging). To authorize a replacement device (such as an SFP ONT stick: DFP-34X-2C2, CarlitoxxPro, Huawei MA5671A, VSOL, XPON), extract the following parameters using [`scripts/extract_credentials.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/extract_credentials.py):
+GPON Optical Line Terminals (OLTs) validate customer ONTs during Phase O3 (Serial Number acquisition) and Phase O4 (Ranging). To authorize a replacement device (such as an SFP ONT stick: DFP-34X-2C2, CarlitoxxPro, Huawei MA5671A, VSOL, XPON), extract the following parameters using [`scripts/extract_credentials.py`](../scripts/extract_credentials.py):
 
 | Provisioning Parameter | Format / Specification | Example / Value | Notes |
 | :--- | :--- | :--- | :--- |

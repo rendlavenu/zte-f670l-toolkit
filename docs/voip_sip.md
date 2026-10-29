@@ -43,7 +43,7 @@ Because VLAN 660 is completely isolated from the standard LAN bridge (`br0`), so
 
 ## 2. SIP Parameter Mapping Reference
 
-Run [`scripts/extract_credentials.py`](file:///home/broken/myWorld/f670l-toolkit/scripts/extract_credentials.py) to read provisioned parameters directly from NVRAM (`VoIPSIPLine` and `VoIPSIPServer` tables):
+Run [`scripts/extract_credentials.py`](../scripts/extract_credentials.py) to read provisioned parameters directly from NVRAM (`VoIPSIPLine` and `VoIPSIPServer` tables):
 
 | SIP Parameter | Configuration Value / Format | Description |
 | :--- | :--- | :--- |

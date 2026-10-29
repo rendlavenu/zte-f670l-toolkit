@@ -94,13 +94,13 @@ sendcmd 1 DB save              # Commit in-memory changes to SPI flash
 
 ## 📚 Deep Technical Documentation
 
-Detailed protocol breakdowns and configuration walk-throughs are located in [`docs/`](file:///home/broken/myWorld/f670l-toolkit/docs/):
+Detailed protocol breakdowns and configuration walk-throughs are located in [`docs/`](docs/):
 
-* **[`docs/root_access.md`](file:///home/broken/myWorld/f670l-toolkit/docs/root_access.md)**: Cryptographic reverse-engineering of `/webFac`, `do_check_client` polynomial math, and AES key derivation.
-* **[`docs/router_hardening.md`](file:///home/broken/myWorld/f670l-toolkit/docs/router_hardening.md)**: Stop IPv6 DNS leaks (Pi-hole), block carrier firmware overwrites, neutralize 3 AM reboots, and free 16 MB RAM.
-* **[`docs/voip_sip.md`](file:///home/broken/myWorld/f670l-toolkit/docs/voip_sip.md)**: Route extracted landline SIP credentials through smartphone softphones (Zoiper) or Asterisk PBX.
-* **[`docs/gpon_cloning.md`](file:///home/broken/myWorld/f670l-toolkit/docs/gpon_cloning.md)**: Clone optical serial numbers onto third-party SFP ONT sticks to eliminate the ISP gateway entirely.
-* **[`docs/sendcmd_reference.md`](file:///home/broken/myWorld/f670l-toolkit/docs/sendcmd_reference.md)**: Full reference table of internal configuration tables and database operations.
+* **[`docs/root_access.md`](docs/root_access.md)**: Cryptographic reverse-engineering of `/webFac`, `do_check_client` polynomial math, and AES key derivation.
+* **[`docs/router_hardening.md`](docs/router_hardening.md)**: Stop IPv6 DNS leaks (Pi-hole), block carrier firmware overwrites, neutralize 3 AM reboots, and free 16 MB RAM.
+* **[`docs/voip_sip.md`](docs/voip_sip.md)**: Route extracted landline SIP credentials through smartphone softphones (Zoiper) or Asterisk PBX.
+* **[`docs/gpon_cloning.md`](docs/gpon_cloning.md)**: Clone optical serial numbers onto third-party SFP ONT sticks to eliminate the ISP gateway entirely.
+* **[`docs/sendcmd_reference.md`](docs/sendcmd_reference.md)**: Full reference table of internal configuration tables and database operations.
 
 ---
 

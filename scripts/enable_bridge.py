@@ -25,7 +25,7 @@ LIB_DIR = os.path.join(BASE_DIR, "lib")
 if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
-from zte_unlock import attempt_unlock, get_secret
+from zte_unlock import attempt_unlock, resolve_credentials
 
 def run_telnet_cmd(host, user, pw, commands):
     s = socket.create_connection((host, 23), timeout=5)
@@ -67,26 +67,25 @@ def main():
     parser.add_argument("--lan-port", type=int, choices=[1, 2, 3, 4], default=4, help="Target LAN port for Bridge Mode (default: 4)")
     args = parser.parse_args()
 
-    user = args.user
-    pw = args.password
-    if not user or not pw:
-        keyring_pass = get_secret("admin") or get_secret("broken")
-        if keyring_pass:
-            pw = keyring_pass
-            user = user or ("broken" if get_secret("broken") else "admin")
+    candidates = resolve_credentials(args.user, args.password)
+    if not candidates:
+        user = input("Enter web username [admin]: ").strip() or "admin"
+        pw = input("Enter web password: ").strip()
+        candidates = [(user, pw)]
 
-    if not user or not pw:
-        user = user or input("Enter web username [admin]: ").strip() or "admin"
-        pw = pw or input("Enter web password: ").strip()
-
-    if not pw:
-        print("[-] Error: Password is required.", file=sys.stderr)
+    if not candidates:
+        print("[-] Error: Credentials are required.", file=sys.stderr)
         sys.exit(1)
 
     print(f"[*] Authenticating with router at {args.host}...")
     ok, res = False, ""
+    active_user = candidates[0][0]
     for attempt in range(1, 4):
-        ok, res = attempt_unlock(user, pw, host=args.host)
+        for u, p in candidates:
+            ok, res = attempt_unlock(u, p, host=args.host)
+            if ok:
+                active_user = u
+                break
         if ok:
             break
         time.sleep(1.5)

@@ -21,7 +21,7 @@ The primary value proposition of this repository is **Gaining Root / Telnet Acce
 All downstream capabilities (WAN Bridge Mode, credential extraction, IPv6 DNS leak fixes, GPON ONT cloning) are secondary utilities that depend on this root privilege. When modifying documentation or README files:
 * Always keep **Root Access & Telnet Unlock** as the primary hero.
 * Keep the README concise, target-focused, and fat-trimmed (~100–120 lines).
-* Keep deep technical deep-dives inside dedicated documents in [`docs/`](file:///home/broken/myWorld/f670l-toolkit/docs/).
+* Keep deep technical deep-dives inside dedicated documents in [`docs/`](docs/).
 
 ---
 

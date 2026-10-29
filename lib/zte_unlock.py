@@ -17,6 +17,7 @@ Disclaimer: For authorized device administration, research, and personal equipme
 import sys
 import os
 import re
+import getpass
 import subprocess
 from urllib.parse import urlparse, parse_qs
 
@@ -42,7 +43,8 @@ def get_secret(key="admin"):
     env_pass = os.environ.get("ROUTER_PASS")
     if env_pass:
         return env_pass
-    for k in [key, "broken", "admin"]:
+    cur_user = getpass.getuser()
+    for k in filter(None, [key, cur_user, "admin"]):
         try:
             res = subprocess.check_output(
                 ["secret-tool", "lookup", "service", "router", "username", k],
@@ -66,14 +68,15 @@ def resolve_credentials(user=None, password=None):
     if env_user and env_pass:
         candidates.append((env_user, env_pass))
 
-    # Check secret-tool keyring
-    for u in ["broken", "admin"]:
+    # Check secret-tool keyring for current OS user and admin
+    cur_user = getpass.getuser()
+    for u in filter(None, [user, cur_user, "admin"]):
         try:
             res = subprocess.check_output(
                 ["secret-tool", "lookup", "service", "router", "username", u],
                 text=True, stderr=subprocess.DEVNULL
             )
-            if res.strip():
+            if res.strip() and (u, res.strip()) not in candidates:
                 candidates.append((u, res.strip()))
         except Exception:
             pass
